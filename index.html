@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atmos — Live Weather Forecasting Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">◈</div>
+    <div>
+      <h1>ATMOS</h1>
+      <p>Live Weather Forecasting Dashboard</p>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input id="cityInput" type="text" placeholder="Search city — e.g. Tokyo, London, New York" autocomplete="off">
+      <button id="searchBtn" class="search-btn">Search</button>
+    </div>
+    <div id="suggestions" class="suggestions hidden"></div>
+  </div>
+
+  <div class="top-actions">
+    <button id="locateBtn" class="icon-btn" title="Use my location">◎ Locate</button>
+    <div class="unit-toggle">
+      <button id="unitC" class="unit active">°C</button>
+      <button id="unitF" class="unit">°F</button>
+    </div>
+    <div class="live-dot"><span></span> LIVE</div>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Loading / Error -->
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div><p>Fetching live data from Open-Meteo…</p>
+  </div>
+  <div id="errorBox" class="error-box hidden"></div>
+
+  <!-- Main Grid -->
+  <main id="dashboard" class="dashboard">
+    <!-- Left Column -->
+    <section class="left-col">
+      <!-- Current Weather Hero -->
+      <div class="hero-card">
+        <div class="hero-top">
+          <div>
+            <h2 id="locationName">—</h2>
+            <p id="locationMeta">—</p>
+            <p id="lastUpdated" class="last-updated">—</p>
+          </div>
+          <div id="weatherIcon" class="hero-icon">⛅</div>
+        </div>
+        <div class="hero-main">
+          <div id="tempBig" class="temp-big">--°</div>
+          <div class="hero-desc">
+            <p id="conditionText" class="condition">—</p>
+            <p id="feelsLike" class="feels">Feels like --°</p>
+          </div>
+        </div>
+        <div class="hero-footer">
+          <span id="tempRange">H --° • L --°</span>
+          <span id="isDayBadge" class="badge">—</span>
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">💧</span> Humidity</div>
+          <div id="humidityVal" class="stat-value">--%</div>
+          <div class="stat-bar"><div id="humidityBar" class="bar-fill" style="width:0%"></div></div>
+          <div id="humidityDesc" class="stat-desc">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">💨</span> Wind Speed</div>
+          <div id="windVal" class="stat-value">-- km/h</div>
+          <div id="windDir" class="stat-desc">—</div>
+          <div class="wind-compass"><div id="windArrow" class="wind-arrow">↑</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">🎯</span> Pressure</div>
+          <div id="pressureVal" class="stat-value">-- hPa</div>
+          <div id="pressureDesc" class="stat-desc">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">☁️</span> Cloud Cover</div>
+          <div id="cloudVal" class="stat-value">--%</div>
+          <div id="cloudDesc" class="stat-desc">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">🌧️</span> Precipitation</div>
+          <div id="precipVal" class="stat-value">-- mm</div>
+          <div id="precipDesc" class="stat-desc">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="stat-icon">🌅</span> Sunrise & Sunset</div>
+          <div id="sunriseVal" class="stat-value small">--:--</div>
+          <div id="sunsetVal" class="stat-desc">Sunset --:--</div>
+        </div>
+      </div>
+
+      <!-- Hourly Chart -->
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3>24-Hour Forecast</h3>
+          <div class="chart-legend">
+            <span class="dot temp-dot"></span> Temperature
+            <span class="dot precip-dot"></span> Precip. %
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="hourlyChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column -->
+    <section class="right-col">
+      <!-- Alerts -->
+      <div class="card alert-card">
+        <div class="card-head">
+          <h3>⚠ Alert Notifications</h3>
+          <span id="alertCount" class="alert-count">0</span>
+        </div>
+        <div id="alertList" class="alert-list">
+          <div class="alert empty">No active alerts. Conditions are normal.</div>
+        </div>
+      </div>
+
+      <!-- 7 Day Forecast -->
+      <div class="card">
+        <div class="card-head"><h3>7-Day Forecast</h3></div>
+        <div id="dailyList" class="daily-list"></div>
+      </div>
+
+      <!-- Hourly Details -->
+      <div class="card">
+        <div class="card-head"><h3>Hourly Details</h3></div>
+        <div id="hourlyList" class="hourly-list"></div>
+      </div>
+
+      <!-- API Info for Students -->
+      <div class="card api-card">
+        <div class="card-head"><h3>🔌 API Handling — For Students</h3></div>
+        <p class="api-desc">This dashboard uses the free <b>Open-Meteo</b> APIs (no key required). Open DevTools → Network to inspect requests.</p>
+        <div class="api-block">
+          <label>Geocoding</label>
+          <code id="apiGeo">https://geocoding-api.open-meteo.com/v1/search?name=…</code>
+        </div>
+        <div class="api-block">
+          <label>Forecast</label>
+          <code id="apiForecast">https://api.open-meteo.com/v1/forecast?latitude=…&longitude=…&current=…</code>
+        </div>
+        <div class="api-meta">
+          <span>Auto-refresh every 5 min</span>
+          <span id="nextRefresh">—</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>Built for learning — API handling & data visualization practice</span>
+    <span>Data: <a href="https://open-meteo.com" target="_blank">Open-Meteo.com</a> • Icons: WMO Weather Codes</span>
+  </footer>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
